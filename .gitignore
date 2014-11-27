@@ -39,6 +39,7 @@ doc/source/_build/
 # Mr Developer
 .mr.developer.cfg
 .project
+.idea
 .pydevproject
 *.swp
 
