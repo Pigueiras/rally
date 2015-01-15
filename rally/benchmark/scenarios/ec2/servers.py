@@ -14,6 +14,7 @@
 
 from rally.benchmark.scenarios import base
 from rally.benchmark.scenarios.ec2 import utils
+from rally.benchmark import types
 from rally.benchmark import validation
 from rally.common import log as logging
 from rally import consts
@@ -25,13 +26,19 @@ LOG = logging.getLogger(__name__)
 class EC2Servers(utils.EC2Scenario):
     """Benchmark scenarios for servers using EC2."""
 
+    @types.set(image=types.EC2ImageResourceType,
+               flavor=types.EC2FlavorResourceType)
+    @validation.image_valid_on_flavor("flavor", "image")
     @validation.required_services(consts.Service.EC2)
     @validation.required_openstack(users=True)
-    @base.scenario()
-    def list_servers(self):
-        """List all servers.
+    @base.scenario(context={"cleanup": ["ec2"]})
+    def boot_server(self, image, flavor, **kwargs):
+        """Boot a server.
 
-        This simple scenario tests the EC2 API list function by listing
-        all the servers.
+        Assumes that cleanup is done elsewhere.
+
+        :param image: image to be used to boot an instance
+        :param flavor: flavor to be used to boot an instance
+        :param kwargs: optional additional arguments for server creation
         """
-        self._list_servers()
+        self._boot_server(image, flavor, **kwargs)

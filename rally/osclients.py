@@ -33,6 +33,7 @@ from swiftclient import client as swift
 from troveclient import client as trove
 from zaqarclient.queues import client as zaqar
 
+from rally.common.i18n import _
 from rally.common import log as logging
 from rally import consts
 from rally import exceptions
@@ -370,12 +371,13 @@ class Clients(object):
 
     @cached
     def ec2(self):
-        """Returns ec2 client."""
+        """Return ec2 client."""
         import boto
         kc = self.keystone()
         if kc.version != "v2.0":
             raise exceptions.RallyException(
-                _("EC2 currently supports only Keystone version 2"))
+                _("Rally EC2 benchmark currently supports only"
+                  "Keystone version 2"))
         ec2_credential = kc.ec2.create(user_id=kc.auth_user_id,
                                        tenant_id=kc.auth_tenant_id)
         ec2_api_url = kc.service_catalog.url_for(
@@ -385,7 +387,8 @@ class Clients(object):
         client = boto.connect_ec2_endpoint(
             url=ec2_api_url,
             aws_access_key_id=ec2_credential.access,
-            aws_secret_access_key=ec2_credential.secret)
+            aws_secret_access_key=ec2_credential.secret,
+            is_secure=CONF.https_insecure)
         return client
 
     @cached
