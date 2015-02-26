@@ -13,8 +13,10 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from rally.benchmark import utils
+import six
 
+from rally.benchmark import utils
+from rally import consts
 
 def resource(service, resource, order=0, admin_required=False,
              perform_for_admin_only=False, tenant_resource=False,
@@ -74,6 +76,8 @@ class ResourceManager(object):
         self.user = user
         self.raw_resource = resource
         self.tenant_uuid = tenant_uuid
+        self.prefix = "rally-"
+        self.delete_matched = True
 
     def _manager(self):
         client = self._admin_required and self.admin or self.user
@@ -82,6 +86,36 @@ class ResourceManager(object):
     def id(self):
         """Returns id of resource."""
         return self.raw_resource.id
+
+    def name(self):
+        """Returns name of resource."""
+        return getattr(self.raw_resource, "name", "")
+
+    def is_deletion_resource(self):
+        """Checks if the resource is a deletion target.
+
+        If delete_matched flag set to True, this method returns True when
+        resource name starts with prefix but if the flag is False, this
+        returns True when resource name doesn't start with prefix.
+        """
+        # NOTE(wtakase): Because except for the following services have not
+        #                been tested yet, those resources are the targets.
+        # TODO(wtakase): After confirming all services, we should delete
+        #                following lines
+        tested_services = [consts.Service.CINDER, consts.Service.GLANCE,
+                           consts.Service.KEYSTONE, consts.Service.NEUTRON,
+                           consts.Service.NOVA, consts.Service.DESIGNATE,
+                           consts.Service.MISTRAL, consts.Service.HEAT,
+                           consts.Service.CEILOMETER]
+        if self._service not in tested_services:
+            return True
+
+        name = self.name()
+        if not isinstance(name, six.string_types):
+            return False
+        if name.startswith(self.prefix):
+            return self.delete_matched
+        return not self.delete_matched
 
     def is_deleted(self):
         """Checks if the resource is deleted.
