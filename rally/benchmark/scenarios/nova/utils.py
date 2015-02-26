@@ -30,7 +30,7 @@ option_names_and_defaults = [
     # action, prepoll delay, timeout, poll interval
     ("start", 0, 300, 1),
     ("stop", 0, 300, 2),
-    ("boot", 1, 300, 1),
+    ("boot", 1, 1200, 1),
     ("delete", 2, 300, 2),
     ("reboot", 2, 300, 2),
     ("rebuild", 1, 300, 1),
@@ -44,7 +44,7 @@ option_names_and_defaults = [
     ("unshelve", 2, 300, 2),
     ("image_create", 0, 300, 2),
     ("image_delete", 0, 300, 2),
-    ("resize", 2, 400, 5),
+    ("resize", 2, 2400, 5),
     ("resize_confirm", 0, 200, 2),
     ("resize_revert", 0, 200, 2),
     ("live_migrate", 1, 400, 2),
@@ -476,7 +476,7 @@ class NovaScenario(base.Scenario):
         :returns: List of created server objects
         """
         for i in range(requests):
-            self.clients("nova").servers.create("%s_%d" % (name_prefix, i),
+            self.clients("nova").servers.create("%s-%d" % (name_prefix, i),
                                                 image_id, flavor_id,
                                                 min_count=instances_amount,
                                                 max_count=instances_amount,

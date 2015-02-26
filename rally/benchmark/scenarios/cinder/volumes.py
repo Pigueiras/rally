@@ -241,7 +241,9 @@ class CinderVolumes(utils.CinderScenario,
         """
 
         server = self._boot_server(image, flavor, **kwargs)
-        volume = self._create_volume(size)
+        if "meta" in kwargs:
+            kwargs.pop("meta")
+        volume = self._create_volume(size, **kwargs)
 
         self._attach_volume(server, volume)
         self._detach_volume(server, volume)

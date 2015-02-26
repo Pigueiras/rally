@@ -65,8 +65,10 @@ class Scenario(functional.FunctionalMixin):
     # TODO(amaretskiy): consider about prefix part of benchmark uuid
     @classmethod
     def _generate_random_name(cls, prefix=None, length=None):
-        prefix = cls.RESOURCE_NAME_PREFIX if prefix is None else prefix
-        length = length or cls.RESOURCE_NAME_LENGTH
+        # NOTE(wtakase): All resources have same prefix forcibly
+        #                This is CERN specific customization.
+        prefix = "rally-"
+        length = 8
         return utils.generate_random_name(prefix, length)
 
     @staticmethod

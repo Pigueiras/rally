@@ -222,6 +222,7 @@ class DeploymentCommands(object):
 
         for ep in endpoints:
             data = [ep.get(m, "") for m in headers]
+            data[2] = "********"
             table_rows.append(utils.Struct(**dict(zip(headers, data))))
         cliutils.print_list(table_rows, headers)
 
