@@ -42,3 +42,14 @@ class EC2Servers(utils.EC2Scenario):
         :param kwargs: optional additional arguments for server creation
         """
         self._boot_server(image, flavor, **kwargs)
+    
+    @validation.required_services(consts.Service.EC2)
+    @validation.required_openstack(users=True)
+    @base.scenario()
+    def list_servers(self):
+        """List all servers.
+
+        This simple scenario tests the EC2 API list function by listing
+        all the servers.
+        """
+        self._list_servers()
