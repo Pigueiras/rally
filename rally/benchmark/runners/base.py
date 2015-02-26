@@ -66,9 +66,13 @@ def _run_scenario_once(args):
              {"task": context["task"]["uuid"], "iteration": iteration})
 
     context["iteration"] = iteration
+    if "admin" in context:
+        admin_clients = osclients.Clients(context["admin"]["endpoint"])
+    else:
+        admin_clients = osclients.Clients(context["non_admin"]["endpoint"])
     scenario = cls(
         context=context,
-        admin_clients=osclients.Clients(context["admin"]["endpoint"]),
+        admin_clients=admin_clients,
         clients=osclients.Clients(context["user"]["endpoint"]))
 
     error = []
