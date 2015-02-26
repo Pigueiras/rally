@@ -1,0 +1,12 @@
+{
+    "type": "ExistingCloudNonAdmin",
+    "auth_url": "http://example.net:5000/v2.0/",
+    "region_name": "RegionOne",
+    "endpoint_type": "public",
+    "admin_port": 5000,
+    "admin": {
+        "username": "xxxxx",
+        "password": "xxxxx",
+        "tenant_name": "xxxxx"
+    }
+}
