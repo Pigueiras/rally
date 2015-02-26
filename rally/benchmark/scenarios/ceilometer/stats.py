@@ -34,3 +34,16 @@ class CeilometerStats(utils.CeilometerScenario):
         """
         meter = self._create_meter(**kwargs)
         self._get_stats(meter.counter_name)
+
+    @validation.required_services(consts.Service.CEILOMETER)
+    @validation.required_openstack(users=True)
+    @base.scenario(context={"cleanup": ["ceilometer"]})
+    def get_stats(self, meter_name, **kwargs):
+        """Test fetching meter's statistics.
+
+        Meter is first created and then statistics is fetched for the same
+        using GET /v2/meters/(meter_name)/statistics.
+        :param meter_name: specifies meter name of alarm
+        :param kwargs: Contains the optional attributes for statistics
+        """
+        self._get_stats(meter_name, **kwargs)

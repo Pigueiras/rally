@@ -131,12 +131,13 @@ class CeilometerScenario(base.Scenario):
         return self.clients("ceilometer").resources.list()
 
     @base.atomic_action_timer("ceilometer.get_stats")
-    def _get_stats(self, meter_name):
+    def _get_stats(self, meter_name, **kwargs):
         """Get stats for a specific meter.
 
         :param meter_name: Name of ceilometer meter
+        :param kwargs: Contains the optional attributes for statistics
         """
-        return self.clients("ceilometer").statistics.list(meter_name)
+        return self.clients("ceilometer").statistics.list(meter_name, **kwargs)
 
     @base.atomic_action_timer("ceilometer.create_meter")
     def _create_meter(self, **kwargs):

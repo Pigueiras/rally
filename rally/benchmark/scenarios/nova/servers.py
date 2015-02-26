@@ -457,3 +457,45 @@ class NovaServers(utils.NovaScenario,
         else:
             self._resize_revert(server, status="SHUTOFF")
         self._delete_server(server)
+
+    @types.set(image=types.ImageResourceType,
+               flavor=types.FlavorResourceType)
+    @validation.image_valid_on_flavor("flavor", "image")
+    @validation.required_services(consts.Service.NOVA, consts.Service.CINDER)
+    @validation.required_openstack(users=True)
+    @base.scenario(context={"cleanup": ["nova", "cinder"]})
+    def boot_server_from_volume_and_live_migrate(self, image, flavor,
+                                                 volume_size,
+                                                 min_sleep=0, max_sleep=0,
+                                                 force_delete=False,
+                                                 block_migration=False,
+                                                 disk_over_commit=False,
+                                                 **kwargs):
+        """Boot a server from volume and then live-migrate it.
+
+        The scenario first creates a volume and then a server, then migrate.
+        Optional 'min_sleep' and 'max_sleep' parameters allow the scenario
+        to simulate a pause between volume creation and deletion
+        (of random duration from [min_sleep, max_sleep]).
+
+        :param image: image to be used to boot an instance
+        :param flavor: flavor to be used to boot an instance
+        :param volume_size: volume size (in GB)
+        :param min_sleep: Minimum sleep time in seconds (non-negative)
+        :param max_sleep: Maximum sleep time in seconds (non-negative)
+        :param force_delete: True if force_delete should be used
+        :param block_migration: Specifies the migration type
+        :param disk_over_commit: Specifies whether to allow overcommit
+                                 on migrated instance or not
+        :param kwargs: Optional additional arguments for server creation
+        """
+        volume = self._create_volume(volume_size, imageRef=image)
+        block_device_mapping = {'vda': '%s:::1' % volume.id}
+        server = self._boot_server(self._generate_random_name(),
+                                   image, flavor,
+                                   block_device_mapping=block_device_mapping,
+                                   **kwargs)
+        self.sleep_between(min_sleep, max_sleep)
+        self._live_migrate(server, None,
+                           block_migration, disk_over_commit)
+        self._delete_server(server, force=force_delete)
