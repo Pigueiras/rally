@@ -20,6 +20,7 @@ from rally.benchmark.context.cleanup import base
 from rally.benchmark.scenarios.keystone import utils as kutils
 from rally.benchmark.wrappers import keystone as keystone_wrapper
 from rally.common import log as logging
+from rally import exceptions
 
 
 LOG = logging.getLogger(__name__)
@@ -40,6 +41,9 @@ class QuotaMixin(SynchronizedDeletion):
     def id(self):
         return self.raw_resource
 
+    def is_deletion_resource(self):
+        return True
+
     def delete(self):
         self._manager().delete(self.raw_resource)
 
@@ -51,7 +55,9 @@ class QuotaMixin(SynchronizedDeletion):
 
 @base.resource("heat", "stacks", order=100)
 class HeatStack(base.ResourceManager):
-    pass
+
+    def name(self):
+        return getattr(self.raw_resource, "stack_name", "")
 
 
 # NOVA
@@ -99,6 +105,9 @@ class NeutronMixin(SynchronizedDeletion, base.ResourceManager):
     def id(self):
         return self.raw_resource["id"]
 
+    def name(self):
+        return self.raw_resource["name"]
+
     def delete(self):
         delete_method = getattr(self._manager(), "delete_%s" % self._resource)
         delete_method(self.id())
@@ -114,6 +123,30 @@ class NeutronMixin(SynchronizedDeletion, base.ResourceManager):
 @base.resource("neutron", "port", order=next(_neutron_order),
                tenant_resource=True)
 class NeutronPort(NeutronMixin):
+
+    def is_deletion_resource(self):
+        # NOTE(wtakase): This is for port having empty name.
+        #                For example, add_interface_router() creates port
+        #                with empty name.
+        if self.raw_resource["device_owner"].startswith("network:router"):
+            device_owner = NeutronRouter(admin=self.admin,
+                                         user=self.user,
+                                         tenant_uuid=self.tenant_uuid,
+                                         prefix=self.prefix,
+                                         delete_matched=self.delete_matched)
+            owner_resource = device_owner.list(
+                function=lambda r: r["id"] == self.raw_resource["device_id"])
+            if len(owner_resource) == 0:
+                raise exceptions.ResourceNotFound(
+                    self.raw_resource["device_id"])
+            if len(owner_resource) > 1:
+                raise exceptions.MultipleMatchesFound(
+                    ("device owners",
+                     ", ".join([r["id"] for r in owner_resource])))
+            device_owner.raw_resource = owner_resource[0]
+            return device_owner.is_deletion_resource()
+        # NOTE(wtakase): In the case of unsupported device_owner
+        return super(NeutronPort, self).is_deletion_resource()
 
     def delete(self):
         if self.raw_resource["device_owner"] == "network:router_interface":
@@ -170,7 +203,10 @@ class CinderVolumeBackup(base.ResourceManager):
 @base.resource("cinder", "volume_snapshots", order=next(_cinder_order),
                tenant_resource=True)
 class CinderVolumeSnapshot(base.ResourceManager):
-    pass
+
+    def name(self):
+        return getattr(self.raw_resource, "name",
+                       getattr(self.raw_resource, "display_name", ""))
 
 
 @base.resource("cinder", "transfers", order=next(_cinder_order),
@@ -182,7 +218,10 @@ class CinderVolumeTransfer(base.ResourceManager):
 @base.resource("cinder", "volumes", order=next(_cinder_order),
                tenant_resource=True)
 class CinderVolume(base.ResourceManager):
-    pass
+
+    def name(self):
+        return getattr(self.raw_resource, "name",
+                       getattr(self.raw_resource, "display_name", ""))
 
 
 @base.resource("cinder", "quotas", order=next(_cinder_order),

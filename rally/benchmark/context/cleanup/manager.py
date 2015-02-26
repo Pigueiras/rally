@@ -176,7 +176,8 @@ class SeekAndDestroy(object):
                     user=self._get_cached_client(user, cache=cache),
                     tenant_uuid=user and user["tenant_id"])
 
-            self._delete_single_resource(manager)
+            if manager.is_deletion_resource():
+                self._delete_single_resource(manager)
 
         return consumer
 
