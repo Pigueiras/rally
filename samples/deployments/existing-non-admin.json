@@ -11,4 +11,9 @@
             "tenant_name": "xxxxx"
         }
     ]
+    "admin": {
+        "username": "xxxxx",
+        "password": "xxxxx",
+        "tenant_name": "xxxxx"
+    }
 }
