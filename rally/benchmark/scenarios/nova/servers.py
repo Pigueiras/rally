@@ -435,7 +435,8 @@ class NovaServers(utils.NovaScenario,
         server = self._boot_server(image, flavor, **kwargs)
         self.sleep_between(min_sleep, max_sleep)
 
-        new_host = self._find_host_to_migrate(server)
+        # NOTE(wtakase): This allows scheduler to select new host
+        new_host = None
         self._live_migrate(server, new_host,
                            block_migration, disk_over_commit)
 

@@ -27,6 +27,7 @@ from rally.benchmark.context import users as users_ctx
 from rally.benchmark.runners import base as base_runner
 from rally.benchmark.scenarios import base as base_scenario
 from rally.benchmark.sla import base as base_sla
+from rally.benchmark.wrappers import keystone
 from rally.common.i18n import _
 from rally.common import log as logging
 from rally.common import utils as rutils
@@ -110,11 +111,24 @@ class BenchmarkEngine(object):
         self.admin = admin and objects.Endpoint(**admin) or None
         self.existing_users = users or []
         self.abort_on_sla_failure = abort_on_sla_failure
+        if self.admin is not None:
+            self.is_admin = True
+            self.user_role = "admin"
+            self.endpoint = objects.Endpoint(**admin)
+            self.tenants = None
+        else:
+            self.is_admin = False
+            self.user_role = "non_admin"
+            self.endpoint = objects.Endpoint(**users[0])
+            # NOTE(wtakase): Currently supports only one user
+            users_info = self._get_users_info(users)
+            self.tenants = users_info[0].pop("tenants")
+            self.users = [users_info[0]]
 
     @rutils.log_task_wrapper(LOG.info, _("Task validation check cloud."))
     def _check_cloud(self):
-        clients = osclients.Clients(self.admin)
-        clients.verified_keystone()
+        clients = osclients.Clients(self.endpoint)
+        clients.verified_keystone(admin=self.is_admin)
 
     @rutils.log_task_wrapper(LOG.info,
                              _("Task validation of scenarios names."))
@@ -169,23 +183,26 @@ class BenchmarkEngine(object):
 
         context = {"task": self.task, "admin": {"endpoint": self.admin}}
         deployment = objects.Deployment.get(self.task["deployment_uuid"])
+        if self.is_admin:
+            context = {"task": self.task, "admin": {"endpoint": self.admin}}
+            with users_ctx.UserGenerator(context) as ctx:
+                ctx.setup()
+                admin = osclients.Clients(self.admin)
+                user = osclients.Clients(context["users"][0]["endpoint"])
 
-        # TODO(boris-42): It's quite hard at the moment to validate case
-        #                 when both user context and existing_users are
-        #                 specified. So after switching to plugin base
-        #                 and refactoring validation mechanism this place
-        #                 will be replaced
-        with self._get_user_ctx_for_validation(context) as ctx:
-            ctx.setup()
-            admin = osclients.Clients(self.admin)
-            user = osclients.Clients(context["users"][0]["endpoint"])
-
-            for u in context["users"]:
-                user = osclients.Clients(u["endpoint"])
-                for name, values in six.iteritems(config):
+                for name, values in config.iteritems():
                     for pos, kwargs in enumerate(values):
-                        self._validate_config_semantic_helper(
-                            admin, user, name, pos, deployment, kwargs)
+                        self._validate_config_semantic_helper(admin, user, name,
+                                                              pos, self.task,
+                                                              kwargs)
+        else:
+            admin = None
+            user = osclients.Clients(self.endpoint)
+            for name, values in config.iteritems():
+                for pos, kwargs in enumerate(values):
+                    self._validate_config_semantic_helper(admin, user, name,
+                                                          pos, deployment,
+                                                          kwargs)
 
     @rutils.log_task_wrapper(LOG.info, _("Task validation."))
     def validate(self):
@@ -217,7 +234,9 @@ class BenchmarkEngine(object):
         scenario_context.update(context)
         context_obj = {
             "task": self.task,
-            "admin": {"endpoint": endpoint},
+            self.user_role: {"endpoint": self.endpoint},
+            "users": self.users,
+            "tenants": self.tenants,
             "scenario_name": name,
             "config": scenario_context
         }
@@ -300,3 +319,18 @@ class BenchmarkEngine(object):
                                   "load_duration": self.duration,
                                   "full_duration": self.full_duration,
                                   "sla": sla_checker.results()})
+
+    def _get_users_info(self, users):
+        users_info = []
+        for user in users:
+            user_endpoint = objects.Endpoint(**user)
+            client = osclients.Clients(user_endpoint)
+            keystone_client = keystone.wrap(client.keystone())
+            user_id = keystone_client.client.user_id
+            tenant_id = keystone_client.client.tenant_id
+            tenant_name = keystone_client.client.tenant_name
+            tenants_info = {}
+            tenants_info[tenant_id] = {"id": tenant_id, "name": tenant_name}
+            users_info.append({"id": user_id, "endpoint": user_endpoint,
+                        "tenant_id": tenant_id, "tenants": tenants_info})
+        return users_info
