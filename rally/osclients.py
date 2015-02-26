@@ -367,6 +367,26 @@ class Clients(object):
         return client
 
     @cached
+    def ec2(self):
+        """Returns ec2 client."""
+        import boto
+        kc = self.keystone()
+        if kc.version != "v2.0":
+            raise exceptions.RallyException(
+                _("EC2 currently supports only Keystone version 2"))
+        ec2_credential = kc.ec2.create(user_id=kc.auth_user_id,
+                                       tenant_id=kc.auth_tenant_id)
+        ec2_api_url = kc.service_catalog.url_for(
+            service_type=consts.ServiceType.EC2,
+            endpoint_type=self.endpoint.endpoint_type,
+            region_name=self.endpoint.region_name)
+        client = boto.connect_ec2_endpoint(
+            url=ec2_api_url,
+            aws_access_key_id=ec2_credential.access,
+            aws_secret_access_key=ec2_credential.secret)
+        return client
+
+    @cached
     def services(self):
         """Return available services names and types.
 
