@@ -95,6 +95,15 @@ class UserGenerator(context.Context):
 
     def __init__(self, context):
         super(UserGenerator, self).__init__(context)
+        self.config.setdefault("tenants", 1)
+        self.config.setdefault("users_per_tenant", 1)
+        self.config.setdefault(
+            "resource_management_workers",
+            cfg.CONF.users_context.resource_management_workers)
+        self.config.setdefault("project_domain",
+                               cfg.CONF.users_context.project_domain)
+        self.config.setdefault("user_domain",
+                               cfg.CONF.users_context.user_domain)
         if "admin" in self.context:
             self.endpoint = self.context["admin"]["endpoint"]
             self.is_admin = True
