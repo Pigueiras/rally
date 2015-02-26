@@ -37,7 +37,7 @@ class UseCommands(object):
             env_file.write("export OS_AUTH_URL=%(auth_url)s\n"
                            "export OS_USERNAME=%(username)s\n"
                            "export OS_PASSWORD=%(password)s\n"
-                           "export OS_TENANT_NAME=%(tenant_name)s\n"
+                           "export OS_TENANT_NAME=\"%(tenant_name)s\"\n"
                            % endpoint)
             if endpoint.get("region_name"):
                 env_file.write("export OS_REGION_NAME=%(region_name)s\n"
