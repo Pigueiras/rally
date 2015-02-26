@@ -95,9 +95,14 @@ class UserGenerator(base.Context):
                                cfg.CONF.users_context.project_domain)
         self.config.setdefault("user_domain",
                                cfg.CONF.users_context.user_domain)
-        self.context["users"] = []
-        self.context["tenants"] = dict()
-        self.endpoint = self.context["admin"]["endpoint"]
+        if "admin" in self.context:
+            self.endpoint = self.context["admin"]["endpoint"]
+            self.is_admin = True
+            self.context["users"] = []
+            self.context["tenants"] = dict()
+        else:
+            self.endpoint = self.context["non_admin"]["endpoint"]
+            self.is_admin = False
         # NOTE(boris-42): I think this is the best place for adding logic when
         #                 we are using pre created users or temporary. So we
         #                 should rename this class s/UserGenerator/UserContext/
@@ -232,12 +237,13 @@ class UserGenerator(base.Context):
 
     @rutils.log_task_wrapper(LOG.info, _("Enter context: `users`"))
     def setup(self):
-        """Create tenants and users, using the broker pattern."""
-        threads = self.config["resource_management_workers"]
+        if self.is_admin:
+            """Create tenants and users, using the broker pattern."""
+            threads = self.config["resource_management_workers"]
 
-        LOG.debug("Creating %(tenants)d tenants using %(threads)s threads" %
-                  {"tenants": self.config["tenants"], "threads": threads})
-        self.context["tenants"] = self._create_tenants()
+            LOG.debug("Creating %(tenants)d tenants using %(threads)s threads" %
+                      {"tenants": self.config["tenants"], "threads": threads})
+            self.context["tenants"] = self._create_tenants()
 
         if len(self.context["tenants"]) < self.config["tenants"]:
             raise exceptions.ContextSetupFailure(
@@ -245,9 +251,10 @@ class UserGenerator(base.Context):
                     msg=_("Failed to create the requested number of tenants."))
 
         users_num = self.config["users_per_tenant"] * self.config["tenants"]
-        LOG.debug("Creating %(users)d users using %(threads)s threads" %
-                  {"users": users_num, "threads": threads})
-        self.context["users"] = self._create_users()
+        if self.is_admin:
+            LOG.debug("Creating %(users)d users using %(threads)s threads" %
+                      {"users": users_num, "threads": threads})
+            self.context["users"] = self._create_users()
 
         if len(self.context["users"]) < users_num:
             raise exceptions.ContextSetupFailure(
@@ -256,6 +263,7 @@ class UserGenerator(base.Context):
 
     @rutils.log_task_wrapper(LOG.info, _("Exit context: `users`"))
     def cleanup(self):
-        """Delete tenants and users, using the broker pattern."""
-        self._delete_users()
-        self._delete_tenants()
+        if self.is_admin:
+            """Delete tenants and users, using the broker pattern."""
+            self._delete_users()
+            self._delete_tenants()

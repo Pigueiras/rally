@@ -51,7 +51,10 @@ def preprocess(cls, method_name, context, args):
     """
     preprocessors = base.Scenario.meta(cls, method_name=method_name,
                                        attr_name="preprocessors", default={})
-    clients = osclients.Clients(context["admin"]["endpoint"])
+    if "admin" in context:
+        clients = osclients.Clients(context["admin"]["endpoint"])
+    else:
+        clients = osclients.Clients(context["non_admin"]["endpoint"])
     processed_args = copy.deepcopy(args)
 
     for src, preprocessor in preprocessors.items():

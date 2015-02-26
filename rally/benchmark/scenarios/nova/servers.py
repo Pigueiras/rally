@@ -315,7 +315,7 @@ class NovaServers(utils.NovaScenario,
                flavor=types.FlavorResourceType)
     @validation.image_valid_on_flavor("flavor", "image")
     @validation.required_services(consts.Service.NOVA)
-    @validation.required_openstack(admin=True, users=True)
+    @validation.required_openstack(users=True)
     @base.scenario(context={"cleanup": ["nova"]})
     def boot_and_live_migrate_server(self, image,
                                      flavor, block_migration=False,
@@ -335,7 +335,8 @@ class NovaServers(utils.NovaScenario,
         """
         server = self._boot_server(image, flavor, **kwargs)
 
-        new_host = self._find_host_to_migrate(server)
+        # NOTE(wtakase): This allows scheduler to select new host
+        new_host = None
         self._live_migrate(server, new_host,
                            block_migration, disk_over_commit)
 

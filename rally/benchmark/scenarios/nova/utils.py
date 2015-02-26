@@ -514,11 +514,9 @@ class NovaScenario(base.Scenario):
         :param skip_host_check: Specifies whether to verify the targeted host
                                 availability
         """
-        server_admin = self.admin_clients("nova").servers.get(server.id)
-        host_pre_migrate = getattr(server_admin, "OS-EXT-SRV-ATTR:host")
-        server_admin.live_migrate(target_host,
-                                  block_migration=block_migration,
-                                  disk_over_commit=disk_over_commit)
+        server.live_migrate(target_host,
+                            block_migration=block_migration,
+                            disk_over_commit=disk_over_commit)
         bench_utils.wait_for(
             server,
             is_ready=bench_utils.resource_is("ACTIVE"),
@@ -527,12 +525,6 @@ class NovaScenario(base.Scenario):
             check_interval=(
                 CONF.benchmark.nova_server_live_migrate_poll_interval)
         )
-        server_admin = self.admin_clients("nova").servers.get(server.id)
-        if (host_pre_migrate == getattr(server_admin, "OS-EXT-SRV-ATTR:host")
-                and not skip_host_check):
-            raise exceptions.LiveMigrateException(
-                "Migration complete but instance did not change host: %s" %
-                host_pre_migrate)
 
     @base.atomic_action_timer("nova.find_host_to_migrate")
     def _find_host_to_migrate(self, server):

@@ -120,7 +120,7 @@ class Clients(object):
             client.authenticate()
         return client
 
-    def verified_keystone(self):
+    def verified_keystone(self, admin=True):
         """Ensure keystone endpoints are valid and then authenticate
 
         :returns: Keystone Client
@@ -128,6 +128,8 @@ class Clients(object):
         try:
             # Ensure that user is admin
             client = self.keystone()
+            if not admin:
+                return client
             if "admin" not in [role.lower() for role in
                                client.auth_ref.role_names]:
                 raise exceptions.InvalidAdminException(
