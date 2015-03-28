@@ -22,6 +22,7 @@ import jsonschema
 import six
 
 from rally.benchmark.context import base as base_ctx
+from rally.benchmark.context import existing_users as existing_users_ctx
 from rally.benchmark.context import users as users_ctx
 from rally.benchmark.runners import base as base_runner
 from rally.benchmark.scenarios import base as base_scenario
@@ -108,7 +109,7 @@ class BenchmarkEngine(object):
         self.config = config
         self.task = task
         self.admin = admin and objects.Endpoint(**admin) or None
-        self.users = map(lambda u: objects.Endpoint(**u), users or [])
+        self.existing_users = users or []
         self.abort_on_sla_failure = abort_on_sla_failure
         if self.admin is not None:
             self.is_admin = True
@@ -167,12 +168,19 @@ class BenchmarkEngine(object):
                   "config": kwargs, "reason": six.text_type(e)}
             raise exceptions.InvalidBenchmarkConfig(**kw)
 
+    def _get_user_ctx_for_validation(self, context):
+        if self.existing_users:
+            context["config"] = {"existing_users": self.existing_users}
+            user_context = existing_users_ctx.ExistingUsers(context)
+        else:
+            user_context = users_ctx.UserGenerator(context)
+
+        return user_context
+
     @rutils.log_task_wrapper(LOG.info, _("Task validation of semantic."))
     def _validate_config_semantic(self, config):
         self._check_cloud()
 
-        # NOTE(boris-42): In future we will have more complex context, because
-        #                 we will have pre-created users mode as well.
         context = {"task": self.task, "admin": {"endpoint": self.admin}}
         deployment = objects.Deployment.get(self.task["deployment_uuid"])
         if self.is_admin:
@@ -218,7 +226,11 @@ class BenchmarkEngine(object):
 
     def _prepare_context(self, context, name, endpoint):
         scenario_context = base_scenario.Scenario.meta(name, "context")
-        scenario_context.setdefault("users", {})
+        if self.existing_users and "users" not in context:
+            scenario_context.setdefault("existing_users", self.existing_users)
+        elif "users" not in context:
+            scenario_context.setdefault("users", {})
+
         scenario_context.update(context)
         context_obj = {
             "task": self.task,
