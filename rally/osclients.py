@@ -134,6 +134,19 @@ class Clients(object):
                 url=self.endpoint.auth_url)
         return client
 
+    def _get_auth_info(self, user_key="username",
+                       password_key="password",
+                       project_name_key="project_id"
+                       ):
+        kw = {
+            user_key: self.endpoint.username,
+            password_key: self.endpoint.password,
+            "auth_url": self.endpoint.auth_url
+        }
+        if project_name_key:
+            kw.update({project_name_key: self.endpoint.tenant_name})
+        return kw
+
     @cached
     def nova(self, version="2"):
         """Return nova client."""
@@ -148,7 +161,8 @@ class Clients(object):
                              http_log_debug=logging.is_debug(),
                              timeout=CONF.openstack_client_http_timeout,
                              insecure=self.endpoint.insecure,
-                             cacert=self.endpoint.cacert)
+                             cacert=self.endpoint.cacert,
+                             **self._get_auth_info(password_key="api_key"))
         client.set_management_url(compute_api_url)
         return client
 
@@ -166,7 +180,10 @@ class Clients(object):
                                 endpoint_url=network_api_url,
                                 timeout=CONF.openstack_client_http_timeout,
                                 insecure=self.endpoint.insecure,
-                                ca_cert=self.endpoint.cacert)
+                                ca_cert=self.endpoint.cacert,
+                                **self._get_auth_info(
+                                    project_name_key="tenant_name")
+                                )
         return client
 
     @cached
@@ -200,18 +217,20 @@ class Clients(object):
                              token=kc.auth_token,
                              timeout=CONF.openstack_client_http_timeout,
                              insecure=self.endpoint.insecure,
-                             cacert=self.endpoint.cacert)
+                             cacert=self.endpoint.cacert,
+                             **self._get_auth_info(project_name_key=None))
         return client
 
     @cached
     def cinder(self, version="1"):
         """Return cinder client."""
         from cinderclient import client as cinder
-        client = cinder.Client(version, None, None,
+        client = cinder.Client(version,
                                http_log_debug=logging.is_debug(),
                                timeout=CONF.openstack_client_http_timeout,
                                insecure=self.endpoint.insecure,
-                               cacert=self.endpoint.cacert)
+                               cacert=self.endpoint.cacert,
+                               **self._get_auth_info(password_key="api_key"))
         kc = self.keystone()
         volume_api_url = kc.service_catalog.url_for(
             service_type="volume",
@@ -241,7 +260,8 @@ class Clients(object):
                     token=auth_token,
                     timeout=CONF.openstack_client_http_timeout,
                     insecure=self.endpoint.insecure,
-                    cacert=self.endpoint.cacert)
+                    cacert=self.endpoint.cacert,
+                    **self._get_auth_info(project_name_key="tenant_name"))
         return client
 
     @cached
@@ -266,10 +286,9 @@ class Clients(object):
         """Return Sahara client."""
         from saharaclient import client as sahara
         client = sahara.Client(version,
-                               username=self.endpoint.username,
-                               api_key=self.endpoint.password,
-                               project_name=self.endpoint.tenant_name,
-                               auth_url=self.endpoint.auth_url)
+                               **self._get_auth_info(
+                                   password_key="api_key",
+                                   project_name_key="project_name"))
 
         return client
 
@@ -331,14 +350,12 @@ class Clients(object):
         """Returns trove client."""
         from troveclient import client as trove
         client = trove.Client(version,
-                              username=self.endpoint.username,
-                              api_key=self.endpoint.password,
-                              project_id=self.endpoint.tenant_name,
-                              auth_url=self.endpoint.auth_url,
                               region_name=self.endpoint.region_name,
                               timeout=CONF.openstack_client_http_timeout,
                               insecure=self.endpoint.insecure,
-                              cacert=self.endpoint.cacert)
+                              cacert=self.endpoint.cacert,
+                              **self._get_auth_info(password_key="api_key")
+                              )
         return client
 
     @cached
@@ -370,7 +387,12 @@ class Clients(object):
                                   preauthurl=object_api_url,
                                   preauthtoken=kc.auth_token,
                                   insecure=self.endpoint.insecure,
-                                  cacert=self.endpoint.cacert)
+                                  cacert=self.endpoint.cacert,
+                                  **self._get_auth_info(
+                                      user_key="user",
+                                      password_key="key",
+                                      project_name_key="tenant_name")
+                                  )
         return client
 
     @cached
