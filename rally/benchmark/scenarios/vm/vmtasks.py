@@ -104,3 +104,21 @@ class VMTasks(nova_utils.NovaScenario, vm_utils.VMScenario,
                                          force_delete=force_delete)
 
         return {"data": data, "errors": err}
+
+    @types.set(image=types.ImageResourceType,
+               flavor=types.FlavorResourceType)
+    @validation.image_valid_on_flavor("flavor", "image")
+    @validation.required_services(consts.Service.NOVA)
+    @validation.required_openstack(users=True)
+    @base.scenario(context={"cleanup": ["nova"]})
+    def boot_ping_delete(self, image, flavor, force_delete=False, **kwargs):
+        """Boot a server, ping, delete the server.
+
+        :param image: glance image name to use for the vm
+        :param flavor: VM flavor name
+        :param force_delete: whether to use force_delete for servers
+        :param **kwargs: extra arguments for booting the server
+        """
+        server = self._boot_server(image, flavor, **kwargs)
+        self._wait_for_ping(server.networks.itervalues().next()[0])
+        self._delete_server(server, force=force_delete)
