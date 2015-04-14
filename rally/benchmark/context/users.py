@@ -155,7 +155,7 @@ class UserGenerator(base.Context):
 
         # NOTE(msdubov): consume() will fill the tenants list in the closure.
         broker.run(publish, consume, threads)
-        tenants_dict = dict()
+        tenants_dict = {}
         for t in tenants:
             tenants_dict[t["id"]] = t
 
@@ -217,7 +217,7 @@ class UserGenerator(base.Context):
             cache["client"].delete_project(tenant_id)
 
         broker.run(publish, consume, threads)
-        self.context["tenants"] = dict()
+        self.context["tenants"] = {}
 
     def _delete_users(self):
         threads = self.config["resource_management_workers"]
