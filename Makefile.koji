@@ -1,0 +1,25 @@
+SPECFILE = openstack-rally.spec
+
+all:
+	python setup.py sdist --dist-dir .
+
+clean:
+	python setup.py clean --all
+
+srpm: all
+	rpmbuild -bs --define "_sourcedir `pwd`" ${SPECFILE}
+
+rpm: all
+	rpmbuild -ba --define "_sourcedir `pwd`" ${SPECFILE}
+
+scratch:
+	koji build cci7-utils --nowait --scratch git+https://github.com/cernops/rally.git#$(shell git describe)
+
+build:
+	koji build cci7-utils --nowait git+https://github.com/cernops/rally.git#$(shell git describe)
+
+tag-qa:
+	koji tag-pkg cci7-utils-qa --nowait openstack-rally-$(shell git describe).el7
+
+tag-stable:
+	koji tag-pkg cci7-utils-stable --nowait openstack-rally-$(shell git describe).el7
