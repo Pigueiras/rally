@@ -41,3 +41,8 @@ doc/source/_build/
 .project
 .pydevproject
 *.swp
+
+# RPM building
+*.tar.gz
+AUTHORS
+ChangeLog

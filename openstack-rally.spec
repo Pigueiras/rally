@@ -1,14 +1,15 @@
 %global project rally
+%global microversion cern2
 
 Name:          openstack-%{project}
 Version:       0.0.2
-Release:       cern2%{?dist}
+Release:       %{microversion}%{?dist}
 Summary:       Benchmark System for OpenStack
 
 Group:         CERN/Utilities
 License:       Apache License, Version 2.0
 URL:           https://openstack.cern.ch/
-Source0:       %{project}-%{version}.tar.gz
+Source0:       %{project}-%{version}.%{microversion}.tar.gz
 
 BuildArch:     noarch
 BuildRequires: python-devel
@@ -59,7 +60,7 @@ Requires:      python-simplejson >= 2.2.0
 Benchmark System for OpenStack
 
 %prep
-%setup -q -n %{project}-%{version}
+%setup -q -n %{project}-%{version}.%{microversion}
 rm -rf {optional-,test-,}requirements.txt
 
 %build
