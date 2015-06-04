@@ -21,7 +21,7 @@ import traceback
 import jsonschema
 import six
 
-from rally.benchmark.context import base as base_ctx
+from rally.benchmark import context
 from rally.benchmark import runner
 from rally.benchmark.scenarios import base as base_scenario
 from rally.benchmark import sla
@@ -145,8 +145,8 @@ class BenchmarkEngine(object):
             for pos, kw in enumerate(values):
                 try:
                     runner.ScenarioRunner.validate(kw.get("runner", {}))
-                    base_ctx.ContextManager.validate(kw.get("context", {}),
-                                                     non_hidden=True)
+                    context.ContextManager.validate(kw.get("context", {}),
+                                                    non_hidden=True)
                     sla.SLA.validate(kw.get("sla", {}))
                 except (exceptions.RallyException,
                         jsonschema.ValidationError) as e:
@@ -167,12 +167,12 @@ class BenchmarkEngine(object):
                   "config": kwargs, "reason": six.text_type(e)}
             raise exceptions.InvalidBenchmarkConfig(**kw)
 
-    def _get_user_ctx_for_validation(self, context):
+    def _get_user_ctx_for_validation(self, ctx):
         if self.existing_users:
-            context["config"] = {"existing_users": self.existing_users}
-            user_context = existingusers_ctx.ExistingUsers(context)
+            ctx["config"] = {"existing_users": self.existing_users}
+            user_context = existingusers_ctx.ExistingUsers(ctx)
         else:
-            user_context = users_ctx.UserGenerator(context)
+            user_context = users_ctx.UserGenerator(ctx)
 
         return user_context
 
@@ -180,7 +180,7 @@ class BenchmarkEngine(object):
     def _validate_config_semantic(self, config):
         self._check_cloud()
 
-        context = {"task": self.task, "admin": {"endpoint": self.admin}}
+        ctx_conf = {"task": self.task, "admin": {"endpoint": self.admin}}
         deployment = objects.Deployment.get(self.task["deployment_uuid"])
         if self.is_admin:
             context = {"task": self.task, "admin": {"endpoint": self.admin}}
@@ -222,14 +222,14 @@ class BenchmarkEngine(object):
         runner_cfg.setdefault("type", consts.RunnerType.SERIAL)
         return runner.ScenarioRunner.get_runner(self.task, runner_cfg)
 
-    def _prepare_context(self, context, name, endpoint):
+    def _prepare_context(self, ctx, name, endpoint):
         scenario_context = base_scenario.Scenario.meta(name, "context")
-        if self.existing_users and "users" not in context:
+        if self.existing_users and "users" not in ctx:
             scenario_context.setdefault("existing_users", self.existing_users)
-        elif "users" not in context:
+        elif "users" not in ctx:
             scenario_context.setdefault("users", {})
 
-        scenario_context.update(context)
+        scenario_context.update(ctx)
         context_obj = {
             "task": self.task,
             self.user_role: {"endpoint": self.endpoint},
@@ -270,7 +270,7 @@ class BenchmarkEngine(object):
                 self.full_duration = 0
                 try:
                     with rutils.Timer() as timer:
-                        with base_ctx.ContextManager(context_obj):
+                        with context.ContextManager(context_obj):
                             self.duration = runner_obj.run(
                                 name, context_obj, kw.get("args", {}))
                 except Exception as e:
