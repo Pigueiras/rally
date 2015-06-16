@@ -1,8 +1,8 @@
 %global project rally
-%global microversion cern2
+%global microversion cern1
 
 Name:          openstack-%{project}
-Version:       0.0.2
+Version:       0.0.4
 Release:       %{microversion}%{?dist}
 Summary:       Benchmark System for OpenStack
 
