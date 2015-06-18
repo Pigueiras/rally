@@ -16,7 +16,7 @@ from rally import consts
 from rally.deploy import engine
 from rally import objects
 
-
+@engine.configure(name="ExistingCloudNonAdmin")
 class ExistingCloudNonAdmin(engine.EngineFactory):
     """Just use an existing OpenStack deployment without deploying anything.
 
@@ -28,7 +28,6 @@ class ExistingCloudNonAdmin(engine.EngineFactory):
             "auth_url": "http://localhost:5000/v2.0/",
             "region_name": "RegionOne",
             "endpoint_type": "public",
-            "admin_port": 5000,
             "users": [
                 {
                     "username": "demo",
@@ -45,7 +44,6 @@ class ExistingCloudNonAdmin(engine.EngineFactory):
             "auth_url": "http://localhost:5000/v3/",
             "region_name": "RegionOne",
             "endpoint_type": "public",
-            "admin_port": 5000,
             "users": [
                 {
                     "username": "demo",
@@ -96,11 +94,6 @@ class ExistingCloudNonAdmin(engine.EngineFactory):
             "endpoint_type": {"type": "string",
                               "enum": [consts.EndpointType.INTERNAL,
                                        consts.EndpointType.PUBLIC]},
-            "admin_port": {
-                "type": "integer",
-                "minimum": 2,
-                "maximum": 65535
-            }
         },
         "anyOf": [
             {
@@ -121,7 +114,6 @@ class ExistingCloudNonAdmin(engine.EngineFactory):
             region_name=common.get("region_name"),
             endpoint_type=common.get("endpoint_type",
                                      consts.EndpointType.PUBLIC),
-            admin_port=common.get("admin_port", 5000),
             domain_name=user.get("domain_name"),
             user_domain_name=user.get("user_domain_name", "Default"),
             project_domain_name=user.get("project_domain_name", "Default")
