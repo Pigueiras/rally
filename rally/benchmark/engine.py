@@ -35,6 +35,9 @@ from rally import consts
 from rally import exceptions
 from rally import objects
 from rally import osclients
+from rally.plugins.openstack.context import existing_users as existingusers_ctx
+from rally.plugins.openstack.context import users as users_ctx
+from rally.plugins.openstack.wrappers import keystone
 
 
 LOG = logging.getLogger(__name__)
