@@ -730,12 +730,7 @@ class Clients(object):
         """
         from keystoneclient import exceptions as keystone_exceptions
         try:
-            # Ensure that user is admin
             client = self.keystone()
-            if "admin" not in [role.lower() for role in
-                               client.auth_ref.role_names]:
-                raise exceptions.InvalidAdminException(
-                    username=self.credential.username)
         except keystone_exceptions.Unauthorized:
             raise exceptions.InvalidEndpointsException()
         except keystone_exceptions.AuthorizationFailure:
